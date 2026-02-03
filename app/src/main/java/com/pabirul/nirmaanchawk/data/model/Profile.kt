@@ -8,8 +8,9 @@ data class Profile(
     val id: String,
     val email: String? = null,
     @SerialName("full_name")
-    val fullName: String = "", // Default empty string to avoid null issues
-    val role: UserRole = UserRole.CLIENT, // Default role
+    val fullName: String,
+    @SerialName("role")
+    val role: UserRole,
     @SerialName("phone_number")
     val phoneNumber: String? = null,
     val skills: List<String>? = null,

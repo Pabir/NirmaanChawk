@@ -34,6 +34,7 @@ class AuthViewModel(private val repository: AuthRepository = AuthRepository()) :
 
     private fun checkProfile() {
         viewModelScope.launch {
+            _uiState.value = AuthState.Loading
             val profile = repository.getCurrentProfile()
             if (profile == null || profile.fullName.isBlank()) {
                 _uiState.value = AuthState.NeedsRegistration
@@ -59,6 +60,8 @@ class AuthViewModel(private val repository: AuthRepository = AuthRepository()) :
             _uiState.value = AuthState.Loading
             try {
                 repository.signUpWithEmail(email, password)
+                // After a successful sign-up, the user is authenticated but needs to register a profile.
+                _uiState.value = AuthState.NeedsRegistration
             } catch (e: Exception) {
                 _uiState.value = AuthState.Error(e.message ?: "Sign up failed")
             }
@@ -82,6 +85,8 @@ class AuthViewModel(private val repository: AuthRepository = AuthRepository()) :
             _uiState.value = AuthState.Loading
             try {
                 repository.verifyOtp(phone, otp)
+                // After a successful OTP verification, the user is authenticated but needs to register a profile.
+                _uiState.value = AuthState.NeedsRegistration
             } catch (e: Exception) {
                 _uiState.value = AuthState.Error(e.message ?: "OTP verification failed")
             }
@@ -125,6 +130,7 @@ class AuthViewModel(private val repository: AuthRepository = AuthRepository()) :
         viewModelScope.launch {
             try {
                 repository.signOut()
+                _uiState.value = AuthState.Idle
             } catch (e: Exception) {
                 _uiState.value = AuthState.Error(e.message ?: "Sign out failed")
             }

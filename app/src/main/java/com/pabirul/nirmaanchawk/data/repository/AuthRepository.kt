@@ -56,15 +56,11 @@ class AuthRepository {
     }
 
     /**
-     * Updates the user's profile. Since the handle_new_user() trigger creates the profile
-     * row upon signup, we use update here.
+     * Updates or inserts the user's profile. Using upsert ensures that the row is created
+     * even if the database trigger (handle_new_user) didn't run or hasn't finished.
      */
     suspend fun updateProfile(profile: Profile) {
-        postgrest["profiles"].update(profile) {
-            filter {
-                eq("id", profile.id)
-            }
-        }
+        postgrest["profiles"].upsert(profile)
     }
 
     fun getSessionStatus() = auth.sessionStatus

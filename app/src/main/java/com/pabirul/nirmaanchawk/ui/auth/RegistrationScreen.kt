@@ -12,6 +12,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pabirul.nirmaanchawk.data.model.UserRole
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +29,8 @@ fun RegistrationScreen(
     var dailyRate by remember { mutableStateOf("") }
     var businessName by remember { mutableStateOf("") }
 
+    val uiState by viewModel.uiState.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -35,7 +38,17 @@ fun RegistrationScreen(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Complete Your Profile", style = MaterialTheme.typography.headlineSmall)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "Complete Your Profile", style = MaterialTheme.typography.headlineSmall)
+            TextButton(onClick = { viewModel.signOut() }) {
+                Text("Logout")
+            }
+        }
+        
         Spacer(modifier = Modifier.height(24.dp))
 
         TextField(
@@ -52,7 +65,7 @@ fun RegistrationScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             TextField(
-                value = selectedRole.name,
+                value = selectedRole.name.lowercase().replaceFirstChar { it.titlecase(Locale.getDefault()) },
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("I am a...") },
@@ -67,7 +80,7 @@ fun RegistrationScreen(
             ) {
                 UserRole.entries.forEach { role ->
                     DropdownMenuItem(
-                        text = { Text(role.name) },
+                        text = { Text(role.name.lowercase().replaceFirstChar { it.titlecase(Locale.getDefault()) }) },
                         onClick = {
                             selectedRole = role
                             expanded = false
@@ -111,14 +124,16 @@ fun RegistrationScreen(
                 )
             }
             UserRole.CLIENT -> {
-                // Clients might just need basic info for now as per plan
-                Text(text = "Registering as a Client to hire workers.", style = MaterialTheme.typography.bodyMedium)
+                TextField(
+                    value = businessName,
+                    onValueChange = { businessName = it },
+                    label = { Text("Business Name (Optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
-
-        val uiState by viewModel.uiState.collectAsState()
 
         Button(
             onClick = {

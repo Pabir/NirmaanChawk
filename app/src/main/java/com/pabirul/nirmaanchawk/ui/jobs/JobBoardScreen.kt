@@ -16,10 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pabirul.nirmaanchawk.data.model.Job
 import com.pabirul.nirmaanchawk.data.model.Profile
 import com.pabirul.nirmaanchawk.data.model.UserRole
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,15 +41,7 @@ fun JobBoardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Column {
-                        Text("NirmaanChawk Jobs")
-                        Text(
-                            text = "Welcome, ${profile.fullName}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                },
+                title = { Text("NirmaanChawk") },
                 actions = {
                     TextButton(onClick = onSignOut) {
                         Text("Logout", color = MaterialTheme.colorScheme.primary)
@@ -63,35 +57,135 @@ fun JobBoardScreen(
             }
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-            when (val state = uiState) {
-                is JobUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                is JobUiState.Success -> {
-                    if (state.jobs.isEmpty()) {
-                        Text(
-                            text = "No jobs available yet.",
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(state.jobs) { job ->
-                                JobItem(job = job, role = role)
+        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+            UserInfoHeader(profile = profile)
+            
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (val state = uiState) {
+                    is JobUiState.Loading -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    }
+                    is JobUiState.Success -> {
+                        if (state.jobs.isEmpty()) {
+                            Text(
+                                text = "No jobs available yet.",
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                item {
+                                    Text(
+                                        text = "Available Jobs",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                }
+                                items(state.jobs) { job ->
+                                    JobItem(job = job, role = role)
+                                }
                             }
                         }
                     }
+                    is JobUiState.Error -> {
+                        Text(
+                            text = state.message,
+                            color = Color.Red,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
                 }
-                is JobUiState.Error -> {
+            }
+        }
+    }
+}
+
+@Composable
+fun UserInfoHeader(profile: Profile) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.Person,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = state.message,
-                        color = Color.Red,
-                        modifier = Modifier.align(Alignment.Center)
+                        text = profile.fullName,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondary,
+                        shape = MaterialTheme.shapes.extraSmall
+                    ) {
+                        Text(
+                            text = profile.role.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White
+                        )
+                    }
+                }
+
+                if (!profile.businessName.isNullOrBlank()) {
+                    Text(
+                        text = profile.businessName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                when (profile.role) {
+                    UserRole.LABORER -> {
+                        profile.skills?.let {
+                            if (it.isNotEmpty()) {
+                                Text(
+                                    text = "Skills: ${it.joinToString(", ")}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                        profile.dailyRate?.let {
+                            Text(
+                                text = "Expected Wage: ₹$it/day",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    UserRole.CONTRACTOR -> {
+                        profile.skills?.let {
+                            if (it.isNotEmpty()) {
+                                Text(
+                                    text = "Specialization: ${it.joinToString(", ")}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                    UserRole.CLIENT -> {
+                        // Clients might not have specific skills or rates to show here
+                    }
                 }
             }
         }

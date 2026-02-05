@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pabirul.nirmaanchawk.data.model.Job
 import com.pabirul.nirmaanchawk.data.model.Profile
@@ -35,7 +34,7 @@ fun JobBoardScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.getJobs()
+        viewModel.getJobs(role)
     }
 
     Scaffold(
@@ -79,7 +78,7 @@ fun JobBoardScreen(
                             ) {
                                 item {
                                     Text(
-                                        text = "Available Jobs",
+                                        text = if (role == UserRole.LABORER) "Available Jobs" else "My Posted Jobs",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(bottom = 8.dp)

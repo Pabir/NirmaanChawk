@@ -11,12 +11,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pabirul.nirmaanchawk.data.model.Job
+import com.pabirul.nirmaanchawk.data.model.UserRole
 import com.pabirul.nirmaanchawk.data.remote.SupabaseClient
 import io.github.jan.supabase.auth.auth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PostJobScreen(
+    role: UserRole,
     onBack: () -> Unit,
     viewModel: JobViewModel = viewModel()
 ) {
@@ -90,7 +92,8 @@ fun PostJobScreen(
                                 category = category,
                                 location = location,
                                 budget = budget.toDoubleOrNull()
-                            )
+                            ),
+                            role = role
                         )
                         onBack()
                     }

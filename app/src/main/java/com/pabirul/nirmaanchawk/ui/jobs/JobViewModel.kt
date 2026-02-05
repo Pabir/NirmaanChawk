@@ -3,6 +3,7 @@ package com.pabirul.nirmaanchawk.ui.jobs
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pabirul.nirmaanchawk.data.model.Job
+import com.pabirul.nirmaanchawk.data.model.UserRole
 import com.pabirul.nirmaanchawk.data.repository.JobRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,11 +15,11 @@ class JobViewModel(private val repository: JobRepository = JobRepository()) : Vi
     private val _uiState = MutableStateFlow<JobUiState>(JobUiState.Loading)
     val uiState: StateFlow<JobUiState> = _uiState.asStateFlow()
 
-    fun getJobs() {
+    fun getJobs(role: UserRole) {
         viewModelScope.launch {
             _uiState.value = JobUiState.Loading
             try {
-                _uiState.value = JobUiState.Success(repository.getJobs())
+                _uiState.value = JobUiState.Success(repository.getJobs(role))
             } catch (e: Exception) {
                 _uiState.value = JobUiState.Error(e.message ?: "Failed to load jobs")
             }
@@ -36,12 +37,12 @@ class JobViewModel(private val repository: JobRepository = JobRepository()) : Vi
         }
     }
 
-    fun postJob(job: Job) {
+    fun postJob(job: Job, role: UserRole) {
         viewModelScope.launch {
             try {
                 repository.postJob(job)
                 // Refresh the list of jobs after posting
-                getJobs()
+                getJobs(role)
             } catch (e: Exception) {
                 _uiState.value = JobUiState.Error(e.message ?: "Failed to post job")
             }

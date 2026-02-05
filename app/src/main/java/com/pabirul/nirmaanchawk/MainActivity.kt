@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
                             is AuthState.Authenticated -> {
                                 if (isPostingJob) {
                                     PostJobScreen(
+                                        role = state.profile.role,
                                         onBack = { isPostingJob = false }
                                     )
                                 } else {

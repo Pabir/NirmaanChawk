@@ -67,7 +67,7 @@ fun JobBoardScreen(
                     is JobUiState.Success -> {
                         if (state.jobs.isEmpty()) {
                             Text(
-                                text = "No jobs available yet.",
+                                text = if (role == UserRole.LABORER) "No open jobs available." else "You haven\'t posted any jobs yet.",
                                 modifier = Modifier.align(Alignment.Center)
                             )
                         } else {
@@ -85,7 +85,13 @@ fun JobBoardScreen(
                                     )
                                 }
                                 items(state.jobs) { job ->
-                                    JobItem(job = job, role = role)
+                                    JobItem(
+                                        job = job,
+                                        role = role,
+                                        onToggleStatus = {
+                                            viewModel.toggleJobStatus(job, role)
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -192,10 +198,15 @@ fun UserInfoHeader(profile: Profile) {
 }
 
 @Composable
-fun JobItem(job: Job, role: UserRole) {
+fun JobItem(job: Job, role: UserRole, onToggleStatus: () -> Unit) {
+    val isCompleted = job.status == "completed"
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isCompleted) Color(0xFFF5F5F5) else MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Job Header
@@ -207,7 +218,7 @@ fun JobItem(job: Job, role: UserRole) {
                     fontWeight = FontWeight.Bold
                 )
                 Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = if (isCompleted) Color.LightGray else MaterialTheme.colorScheme.primaryContainer,
                     shape = MaterialTheme.shapes.small
                 ) {
                     Text(
@@ -273,6 +284,16 @@ fun JobItem(job: Job, role: UserRole) {
                 if (role == UserRole.LABORER) {
                     Button(onClick = { /* TODO: Apply logic */ }, modifier = Modifier.height(36.dp)) {
                         Text("Apply Now")
+                    }
+                } else if (role == UserRole.CLIENT || role == UserRole.CONTRACTOR) {
+                    Button(
+                        onClick = onToggleStatus,
+                        modifier = Modifier.height(36.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isCompleted) Color.Red else Color(0xFF4CAF50)
+                        )
+                    ) {
+                        Text(if (isCompleted) "Completed" else "Complete")
                     }
                 }
             }

@@ -48,6 +48,19 @@ class JobViewModel(private val repository: JobRepository = JobRepository()) : Vi
             }
         }
     }
+
+    fun toggleJobStatus(job: Job, role: UserRole) {
+        viewModelScope.launch {
+            try {
+                val newStatus = if (job.status == "completed") "open" else "completed"
+                job.id?.let { repository.updateJobStatus(it, newStatus) }
+                // Refresh the list
+                getJobs(role)
+            } catch (e: Exception) {
+                _uiState.value = JobUiState.Error(e.message ?: "Failed to update job status")
+            }
+        }
+    }
 }
 
 sealed class JobUiState {

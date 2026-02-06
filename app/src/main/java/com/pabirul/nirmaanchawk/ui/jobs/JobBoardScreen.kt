@@ -1,16 +1,17 @@
 package com.pabirul.nirmaanchawk.ui.jobs
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -211,6 +212,7 @@ fun JobItem(
 ) {
     val isCompleted = job.status == "completed"
     val hasApplied = job.applications.any { it.applicant_id == currentUserId }
+    var showApplicants by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -281,33 +283,31 @@ fun JobItem(
                 Spacer(modifier = Modifier.height(16.dp))
                 HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Applicants (${job.applications.size})",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                job.applications.forEach { application ->
-                    application.profiles?.let { applicant ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = applicant.fullName, style = MaterialTheme.typography.bodySmall)
-                            Spacer(modifier = Modifier.weight(1f))
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = MaterialTheme.shapes.extraSmall
-                            ) {
-                                Text(
-                                    text = application.status,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall
-                                )
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showApplicants = !showApplicants }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Applicants (${job.applications.size})",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Icon(
+                        if (showApplicants) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null
+                    )
+                }
+
+                AnimatedVisibility(visible = showApplicants) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        job.applications.forEach { application ->
+                            application.profiles?.let { applicant ->
+                                ApplicantDetailItem(applicant = applicant, status = application.status)
                             }
                         }
                     }
@@ -352,6 +352,72 @@ fun JobItem(
                         Text(if (isCompleted) "Completed" else "Complete")
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ApplicantDetailItem(applicant: Profile, status: String) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(24.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = applicant.fullName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = MaterialTheme.shapes.extraSmall
+                ) {
+                    Text(
+                        text = status.uppercase(),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+            
+            if (!applicant.phoneNumber.isNullOrBlank()) {
+                Text(
+                    text = "Phone: ${applicant.phoneNumber}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            
+            if (!applicant.skills.isNullOrEmpty()) {
+                Text(
+                    text = "Skills: ${applicant.skills.joinToString(", ")}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+            
+            if (applicant.dailyRate != null) {
+                Text(
+                    text = "Daily Rate: ₹${applicant.dailyRate}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
         }
     }

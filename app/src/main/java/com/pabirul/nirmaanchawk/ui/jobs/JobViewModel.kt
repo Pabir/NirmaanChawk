@@ -59,6 +59,17 @@ class JobViewModel(private val repository: JobRepository = JobRepository()) : Vi
             }
         }
     }
+
+    fun updateApplicationStatus(applicationId: String, status: String, role: UserRole) {
+        viewModelScope.launch {
+            try {
+                repository.updateApplicationStatus(applicationId, status)
+                getJobs(role)
+            } catch (e: Exception) {
+                _uiState.value = JobUiState.Error(e.message ?: "Failed to update application status")
+            }
+        }
+    }
 }
 
 sealed class JobUiState {

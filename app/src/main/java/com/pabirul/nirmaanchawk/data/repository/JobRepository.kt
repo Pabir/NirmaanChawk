@@ -29,7 +29,6 @@ class JobRepository {
                                 eq("client_id", "00000000-0000-0000-0000-000000000000") 
                             }
                         }
-                        // For LABORER, we fetch all jobs and filter locally to avoid PostgREST complex query issues
                     }
                 }
                 .decodeList<Job>()
@@ -72,6 +71,16 @@ class JobRepository {
             applicant_id = userId
         )
         postgrest["job_applications"].insert(application)
+    }
+
+    suspend fun updateApplicationStatus(applicationId: String, status: String) {
+        postgrest["job_applications"].update({
+            set("status", status)
+        }) {
+            filter {
+                eq("id", applicationId)
+            }
+        }
     }
 
     suspend fun getMyJobs(): List<Job> {

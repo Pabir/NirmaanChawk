@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Person
@@ -95,6 +97,12 @@ fun JobBoardScreen(
                                         },
                                         onApplyClick = {
                                             job.id?.let { viewModel.applyForJob(it, role) }
+                                        },
+                                        onApproveApplicant = { applicationId ->
+                                            viewModel.updateApplicationStatus(applicationId, "approved", role)
+                                        },
+                                        onRejectApplicant = { applicationId ->
+                                            viewModel.updateApplicationStatus(applicationId, "rejected", role)
                                         }
                                     )
                                 }
@@ -208,10 +216,13 @@ fun JobItem(
     role: UserRole,
     currentUserId: String,
     onToggleStatus: () -> Unit,
-    onApplyClick: () -> Unit
+    onApplyClick: () -> Unit,
+    onApproveApplicant: (String) -> Unit,
+    onRejectApplicant: (String) -> Unit
 ) {
     val isCompleted = job.status == "completed"
-    val hasApplied = job.applications.any { it.applicant_id == currentUserId }
+    val myApplication = job.applications.find { it.applicant_id == currentUserId }
+    val hasApplied = myApplication != null
     var showApplicants by remember { mutableStateOf(false) }
 
     Card(
@@ -307,7 +318,12 @@ fun JobItem(
                     Column(modifier = Modifier.fillMaxWidth()) {
                         job.applications.forEach { application ->
                             application.profiles?.let { applicant ->
-                                ApplicantDetailItem(applicant = applicant, status = application.status)
+                                ApplicantDetailItem(
+                                    applicant = applicant,
+                                    status = application.status,
+                                    onApprove = { application.id?.let { onApproveApplicant(it) } },
+                                    onReject = { application.id?.let { onRejectApplicant(it) } }
+                                )
                             }
                         }
                     }
@@ -331,15 +347,29 @@ fun JobItem(
                 }
                 
                 if (role == UserRole.LABORER) {
-                    Button(
-                        onClick = onApplyClick,
-                        modifier = Modifier.height(36.dp),
-                        enabled = !hasApplied,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (hasApplied) Color.Gray else MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Text(if (hasApplied) "Applied" else "Apply Now")
+                    Column(horizontalAlignment = Alignment.End) {
+                        Button(
+                            onClick = onApplyClick,
+                            modifier = Modifier.height(36.dp),
+                            enabled = !hasApplied,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (hasApplied) Color.Gray else MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Text(if (hasApplied) "Applied" else "Apply Now")
+                        }
+                        if (hasApplied) {
+                            Text(
+                                text = "Status: ${myApplication?.status?.uppercase()}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = when(myApplication?.status) {
+                                    "approved" -> Color(0xFF4CAF50)
+                                    "rejected" -> Color.Red
+                                    else -> Color.Gray
+                                },
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
                     }
                 } else if (role == UserRole.CLIENT || role == UserRole.CONTRACTOR) {
                     Button(
@@ -358,7 +388,12 @@ fun JobItem(
 }
 
 @Composable
-fun ApplicantDetailItem(applicant: Profile, status: String) {
+fun ApplicantDetailItem(
+    applicant: Profile,
+    status: String,
+    onApprove: () -> Unit,
+    onReject: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -383,13 +418,22 @@ fun ApplicantDetailItem(applicant: Profile, status: String) {
                     )
                 }
                 Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = when(status) {
+                        "approved" -> Color(0xFFE8F5E9)
+                        "rejected" -> Color(0xFFFFEBEE)
+                        else -> MaterialTheme.colorScheme.primaryContainer
+                    },
                     shape = MaterialTheme.shapes.extraSmall
                 ) {
                     Text(
                         text = status.uppercase(),
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall
+                        style = MaterialTheme.typography.labelSmall,
+                        color = when(status) {
+                            "approved" -> Color(0xFF2E7D32)
+                            "rejected" -> Color(0xFFC62828)
+                            else -> MaterialTheme.colorScheme.onPrimaryContainer
+                        }
                     )
                 }
             }
@@ -418,6 +462,28 @@ fun ApplicantDetailItem(applicant: Profile, status: String) {
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(top = 2.dp)
                 )
+            }
+
+            if (status == "pending") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    IconButton(
+                        onClick = onReject,
+                        colors = IconButtonDefaults.iconButtonColors(contentColor = Color.Red)
+                    ) {
+                        Icon(Icons.Default.Close, contentDescription = "Reject")
+                    }
+                    IconButton(
+                        onClick = onApprove,
+                        colors = IconButtonDefaults.iconButtonColors(contentColor = Color(0xFF4CAF50))
+                    ) {
+                        Icon(Icons.Default.Check, contentDescription = "Approve")
+                    }
+                }
             }
         }
     }

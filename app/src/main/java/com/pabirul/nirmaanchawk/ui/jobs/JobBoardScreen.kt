@@ -88,8 +88,12 @@ fun JobBoardScreen(
                                     JobItem(
                                         job = job,
                                         role = role,
+                                        currentUserId = profile.id,
                                         onToggleStatus = {
                                             viewModel.toggleJobStatus(job, role)
+                                        },
+                                        onApplyClick = {
+                                            job.id?.let { viewModel.applyForJob(it, role) }
                                         }
                                     )
                                 }
@@ -198,8 +202,15 @@ fun UserInfoHeader(profile: Profile) {
 }
 
 @Composable
-fun JobItem(job: Job, role: UserRole, onToggleStatus: () -> Unit) {
+fun JobItem(
+    job: Job,
+    role: UserRole,
+    currentUserId: String,
+    onToggleStatus: () -> Unit,
+    onApplyClick: () -> Unit
+) {
     val isCompleted = job.status == "completed"
+    val hasApplied = job.applications.any { it.applicant_id == currentUserId }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -265,6 +276,44 @@ fun JobItem(job: Job, role: UserRole, onToggleStatus: () -> Unit) {
                 }
             }
 
+            // Applicants Section for Creator
+            if (role != UserRole.LABORER && job.applications.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Applicants (${job.applications.size})",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                job.applications.forEach { application ->
+                    application.profiles?.let { applicant ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = applicant.fullName, style = MaterialTheme.typography.bodySmall)
+                            Spacer(modifier = Modifier.weight(1f))
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = MaterialTheme.shapes.extraSmall
+                            ) {
+                                Text(
+                                    text = application.status,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
             
             Row(
@@ -282,8 +331,15 @@ fun JobItem(job: Job, role: UserRole, onToggleStatus: () -> Unit) {
                 }
                 
                 if (role == UserRole.LABORER) {
-                    Button(onClick = { /* TODO: Apply logic */ }, modifier = Modifier.height(36.dp)) {
-                        Text("Apply Now")
+                    Button(
+                        onClick = onApplyClick,
+                        modifier = Modifier.height(36.dp),
+                        enabled = !hasApplied,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (hasApplied) Color.Gray else MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text(if (hasApplied) "Applied" else "Apply Now")
                     }
                 } else if (role == UserRole.CLIENT || role == UserRole.CONTRACTOR) {
                     Button(

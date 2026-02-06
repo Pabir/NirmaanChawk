@@ -26,22 +26,10 @@ class JobViewModel(private val repository: JobRepository = JobRepository()) : Vi
         }
     }
 
-    fun getMyJobs() {
-        viewModelScope.launch {
-            _uiState.value = JobUiState.Loading
-            try {
-                _uiState.value = JobUiState.Success(repository.getMyJobs())
-            } catch (e: Exception) {
-                _uiState.value = JobUiState.Error(e.message ?: "Failed to load your jobs")
-            }
-        }
-    }
-
     fun postJob(job: Job, role: UserRole) {
         viewModelScope.launch {
             try {
                 repository.postJob(job)
-                // Refresh the list of jobs after posting
                 getJobs(role)
             } catch (e: Exception) {
                 _uiState.value = JobUiState.Error(e.message ?: "Failed to post job")
@@ -54,10 +42,20 @@ class JobViewModel(private val repository: JobRepository = JobRepository()) : Vi
             try {
                 val newStatus = if (job.status == "completed") "open" else "completed"
                 job.id?.let { repository.updateJobStatus(it, newStatus) }
-                // Refresh the list
                 getJobs(role)
             } catch (e: Exception) {
                 _uiState.value = JobUiState.Error(e.message ?: "Failed to update job status")
+            }
+        }
+    }
+
+    fun applyForJob(jobId: String, role: UserRole) {
+        viewModelScope.launch {
+            try {
+                repository.applyForJob(jobId)
+                getJobs(role)
+            } catch (e: Exception) {
+                _uiState.value = JobUiState.Error(e.message ?: "Failed to apply for job")
             }
         }
     }

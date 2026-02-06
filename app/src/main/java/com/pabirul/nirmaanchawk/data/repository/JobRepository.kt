@@ -22,20 +22,28 @@ class JobRepository {
             val jobs = postgrest["jobs"]
                 .select(Columns.raw("*, profiles(*), job_applications(*, profiles(*))")) {
                     filter {
-                        if (role == UserRole.LABORER) {
-                            eq("status", "open")
-                        } else if (role == UserRole.CLIENT || role == UserRole.CONTRACTOR) {
+                        if (role == UserRole.CLIENT || role == UserRole.CONTRACTOR) {
                             if (userId != null) {
                                 eq("client_id", userId)
                             } else {
                                 eq("client_id", "00000000-0000-0000-0000-000000000000") 
                             }
                         }
+                        // For LABORER, we fetch all jobs and filter locally to avoid PostgREST complex query issues
                     }
                 }
                 .decodeList<Job>()
-            Log.d("JobRepository", "Fetched ${jobs.size} jobs")
-            jobs
+            
+            val finalJobs = if (role == UserRole.LABORER && userId != null) {
+                jobs.filter { job ->
+                    job.status == "open" || job.applications.any { it.applicant_id == userId }
+                }
+            } else {
+                jobs
+            }
+            
+            Log.d("JobRepository", "Fetched ${finalJobs.size} jobs")
+            finalJobs
         } catch (e: Exception) {
             Log.e("JobRepository", "Error fetching jobs", e)
             throw e

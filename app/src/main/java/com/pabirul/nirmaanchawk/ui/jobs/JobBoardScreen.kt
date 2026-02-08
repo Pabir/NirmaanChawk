@@ -6,12 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,11 +14,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pabirul.nirmaanchawk.data.model.Job
 import com.pabirul.nirmaanchawk.data.model.Profile
 import com.pabirul.nirmaanchawk.data.model.UserRole
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+// Helper to format ISO dates from Supabase
+fun formatDate(isoString: String?): String {
+    if (isoString == null) return ""
+    return try {
+        val zonedDateTime = ZonedDateTime.parse(isoString)
+        val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
+        zonedDateTime.format(formatter)
+    } catch (e: Exception) {
+        ""
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -235,12 +245,18 @@ fun JobItem(
         Column(modifier = Modifier.padding(16.dp)) {
             // Job Header
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = job.title,
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = job.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Posted on: ${formatDate(job.createdAt)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray
+                    )
+                }
                 Surface(
                     color = if (isCompleted) Color.LightGray else MaterialTheme.colorScheme.primaryContainer,
                     shape = MaterialTheme.shapes.small
@@ -320,7 +336,7 @@ fun JobItem(
                             application.profiles?.let { applicant ->
                                 ApplicantDetailItem(
                                     applicant = applicant,
-                                    status = application.status,
+                                    application = application,
                                     onApprove = { application.id?.let { onApproveApplicant(it) } },
                                     onReject = { application.id?.let { onRejectApplicant(it) } }
                                 )
@@ -359,16 +375,30 @@ fun JobItem(
                             Text(if (hasApplied) "Applied" else "Apply Now")
                         }
                         if (hasApplied) {
-                            Text(
-                                text = "Status: ${myApplication?.status?.uppercase()}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = when(myApplication?.status) {
-                                    "approved" -> Color(0xFF4CAF50)
-                                    "rejected" -> Color.Red
-                                    else -> Color.Gray
-                                },
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = "Applied on: ${formatDate(myApplication?.createdAt)}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = "Status: ${myApplication?.status?.uppercase()}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = when(myApplication?.status) {
+                                        "approved" -> Color(0xFF4CAF50)
+                                        "rejected" -> Color.Red
+                                        else -> Color.Gray
+                                    }
+                                )
+                                if (myApplication?.status != "pending") {
+                                    Text(
+                                        text = "Decision on: ${formatDate(myApplication?.updatedAt)}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 10.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
                         }
                     }
                 } else if (role == UserRole.CLIENT || role == UserRole.CONTRACTOR) {
@@ -390,14 +420,13 @@ fun JobItem(
 @Composable
 fun ApplicantDetailItem(
     applicant: Profile,
-    status: String,
+    application: com.pabirul.nirmaanchawk.data.model.JobApplication,
     onApprove: () -> Unit,
     onReject: () -> Unit
 ) {
     var isLoading by remember { mutableStateOf(false) }
 
-    // Reset loading when status changes
-    LaunchedEffect(status) {
+    LaunchedEffect(application.status) {
         isLoading = false
     }
 
@@ -415,33 +444,50 @@ fun ApplicantDetailItem(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(24.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = applicant.fullName,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     Text(
-                        text = applicant.fullName,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold
+                        text = "Applied: ${formatDate(application.createdAt)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray
                     )
                 }
-                Surface(
-                    color = when(status) {
-                        "approved" -> Color(0xFFE8F5E9)
-                        "rejected" -> Color(0xFFFFEBEE)
-                        else -> MaterialTheme.colorScheme.primaryContainer
-                    },
-                    shape = MaterialTheme.shapes.extraSmall
-                ) {
-                    Text(
-                        text = status.uppercase(),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = when(status) {
-                            "approved" -> Color(0xFF2E7D32)
-                            "rejected" -> Color(0xFFC62828)
-                            else -> MaterialTheme.colorScheme.onPrimaryContainer
-                        }
-                    )
+                Column(horizontalAlignment = Alignment.End) {
+                    Surface(
+                        color = when(application.status) {
+                            "approved" -> Color(0xFFE8F5E9)
+                            "rejected" -> Color(0xFFFFEBEE)
+                            else -> MaterialTheme.colorScheme.primaryContainer
+                        },
+                        shape = MaterialTheme.shapes.extraSmall
+                    ) {
+                        Text(
+                            text = application.status.uppercase(),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = when(application.status) {
+                                "approved" -> Color(0xFF2E7D32)
+                                "rejected" -> Color(0xFFC62828)
+                                else -> MaterialTheme.colorScheme.onPrimaryContainer
+                            }
+                        )
+                    }
+                    if (application.status != "pending") {
+                        Text(
+                            text = "Decision: ${formatDate(application.updatedAt)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 10.sp,
+                            color = Color.Gray
+                        )
+                    }
                 }
             }
             
@@ -471,7 +517,7 @@ fun ApplicantDetailItem(
                 )
             }
 
-            if (status == "pending") {
+            if (application.status == "pending") {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

@@ -13,5 +13,7 @@ data class JobApplication(
     val status: String = "pending",
     @SerialName("created_at")
     val createdAt: String? = null,
-    val profiles: Profile? = null // To store applicant profile when fetched
+    @SerialName("updated_at")
+    val updatedAt: String? = null,
+    val profiles: Profile? = null
 )

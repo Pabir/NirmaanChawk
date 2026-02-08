@@ -394,6 +394,13 @@ fun ApplicantDetailItem(
     onApprove: () -> Unit,
     onReject: () -> Unit
 ) {
+    var isLoading by remember { mutableStateOf(false) }
+
+    // Reset loading when status changes
+    LaunchedEffect(status) {
+        isLoading = false
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -469,19 +476,33 @@ fun ApplicantDetailItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = onReject,
-                        colors = IconButtonDefaults.iconButtonColors(contentColor = Color.Red)
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Reject")
-                    }
-                    IconButton(
-                        onClick = onApprove,
-                        colors = IconButtonDefaults.iconButtonColors(contentColor = Color(0xFF4CAF50))
-                    ) {
-                        Icon(Icons.Default.Check, contentDescription = "Approve")
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        IconButton(
+                            onClick = { 
+                                isLoading = true
+                                onReject() 
+                            },
+                            colors = IconButtonDefaults.iconButtonColors(contentColor = Color.Red)
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = "Reject")
+                        }
+                        IconButton(
+                            onClick = { 
+                                isLoading = true
+                                onApprove() 
+                            },
+                            colors = IconButtonDefaults.iconButtonColors(contentColor = Color(0xFF4CAF50))
+                        ) {
+                            Icon(Icons.Default.Check, contentDescription = "Approve")
+                        }
                     }
                 }
             }
